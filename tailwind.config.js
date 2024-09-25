@@ -6,11 +6,31 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
+   
+        extend: {
+          colors: {
+            primary: "#082f49",
+            secondary: "#00CDBD",
+            // primarylight: "#0a3450e5",
+            primarylight: "rgb(34 62 111)",
+            // primarylight: "#155e75",
+            secondarylight: "#16282C",
+            TextColor: "#e4efff",
+          },
+          fontFamily: {
+            pthin: ["Poppins-Thin", "sans-serif"],
+            pextralight: ["Poppins-ExtraLight", "sans-serif"],
+            plight: ["Poppins-Light", "sans-serif"],
+            pregular: ["Poppins-Regular", "sans-serif"],
+            pmedium: ["Poppins-Medium", "sans-serif"],
+            psemibold: ["Poppins-SemiBold", "sans-serif"],
+            pbold: ["Poppins-Bold", "sans-serif"],
+            pextrabold: ["Poppins-ExtraBold", "sans-serif"],
+            pblack: ["Poppins-Black", "sans-serif"],
+          },
+   
+        
+    
     },
   },
   plugins: [],
