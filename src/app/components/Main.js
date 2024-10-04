@@ -1,37 +1,139 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Button, Modal } from "@mui/material";
+import categoriesData from "./categories.json";
+// import handler from "../api/categories";
 function Main() {
   const [open, setOpen] = useState(false);
-  const [openSubModal, setOpenSubModal] = useState(false); // State to toggle modal
-  const handleSubClose = () => setOpenSubModal(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const [categories, setCategories] = useState({
-    computer: ["Computer devices"],
+    computer: [{name: "Computer devices", subcategories: []}],
     Accessories: [
-      "Input devices",
-      "Output devices",
-      "Networking devices",
-      "Storage devices",
+      { name: "Input devices", subcategories: [{ name: "Keyboard", subcategories: [] }] },
     ],
   });
-  const [mainCategory, setMainCategory] = useState("");
-  const [subCategory, setSubCategory] = useState("");
-  const [subCategories, setSubCategories] = useState([]);
-  const [subSubCategory, setSubSubCategory] = useState("");
-  const [newsubSubCategory, setNewSubSubCategory] = useState("");
-  const [subSubCategories, setSubSubCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState(""); // State to hold new category input
-  const [newsubCategory, setNewsubCategory] = useState(""); // State to hold new category input
-  const [isAddingNew, setIsAddingNew] = useState(false); // State to toggle input field
-  const handleSubOpen = () => {
-    setNewsubCategory(""); // Clear the input for new subcategory
-    setOpenSubModal(true); // Open the modal
-  };
 
+  const [selectedOption, setSelectedOption] = useState("Select Option"); // State to track selected option
+  // const [categories, setCategories] = useState([]);
+
+  const [mainCategory, setMainCategory] = useState("");
+  const [subCategories, setSubCategories] = useState([]);
+  const [newSubCategory, setNewSubCategory] = useState("");
+  const [newCategory, setNewCategory] = useState(""); // State to hold new category input
+  const [isAddingNew, setIsAddingNew] = useState(false); // State to toggle input field
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState([]);
   ////////////////////////////////////////////-------------------FOR MAIN CATEGORY-------------------////////////////////////////////////////////
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories"); // Adjusted the path to be absolute for Next.js
+        const contentType = res.headers.get("content-type");
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          setCategories(data.categories);
+          console.log(data.categories);
+        } else {
+          console.error("Expected JSON, got", contentType);
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  //////////////////////////////////////////////////////----------------------------------------------//////////////////////////////
+
+  const renderCategoryOptions = (categoryList, path = []) => {
+    return categoryList.map((category, index) => {
+      const currentPath = [...path, category.name]; // Create current path
+
+      return (
+        <React.Fragment key={category.name + index}>
+          <option value={currentPath.join(" -> ")}>
+            {"->".repeat(path.length)} {category.name}
+          </option>
+          {category.subcategories &&
+            category.subcategories.length > 0 &&
+            renderCategoryOptions(category.subcategories, currentPath)}
+        </React.Fragment>
+      );
+    });
+  };
+
+
+  // const renderCategoryOptions = (categoriesList = [], depth = 0) => {
+  //   // If categoriesList is not an array, return an empty fragment to prevent errors
+  //   if (!Array.isArray(categoriesList)) return null;
+  
+  //   return categoriesList.map((category, index) => (
+  //     <React.Fragment key={index}>
+  //       <option value={category.name}>
+  //         {/* Add arrows for depth levels */}
+  //         {"->".repeat(depth)} {category.name}
+  //       </option>
+  //       {/* Recursively render subcategories, if available */}
+  //       {Array.isArray(category.subcategories) && category.subcategories.length > 0 && (
+  //         renderCategoryOptions(category.subcategories, depth + 1)
+  //       )}
+  //     </React.Fragment>
+  //   ));
+  // };
+  const updateCategories = (categoriesList, path, newSubCategory) => {
+    // Ensure categoriesList is an array, if it's undefined, initialize it as an empty array
+    if (!Array.isArray(categoriesList)) {
+      categoriesList = [];
+    }
+  
+    // Base case: if the path is empty, add the new subcategory at this level
+    if (path.length === 0) {
+      return [...categoriesList, { name: newSubCategory, subcategories: [] }];
+    }
+  
+    // Recursive case: traverse deeper into the category tree
+    return categoriesList.map((category) => {
+      if (category.name === path[0]) {
+        return {
+          ...category,
+          subcategories: updateCategories(category.subcategories, path.slice(1), newSubCategory),
+        };
+      }
+      return category;
+    });
+  };
+  // Handle adding a new subcategory
+  const handleAddSubCategory = () => {
+    if (newSubCategory.trim() !== "" && selectedCategoryPath.length > 0) {
+      const updatedCategories = {
+        ...categories,
+        [selectedCategoryPath[0]]: updateCategories(
+          categories[selectedCategoryPath[0]],
+          selectedCategoryPath.slice(1),
+          newSubCategory
+        ),
+      };
+      setCategories(updatedCategories);
+      setNewSubCategory(""); // Reset subcategory input field
+    }
+  };
+
+  const handleCategoryChange = (event) => {
+    const selectedValue = event.target.value;
+    if (selectedValue === "Add") {
+      setIsAddingNew(true); // Set the flag for adding new
+      handleOpen(); // Open the modal
+    } else {
+      const path = selectedValue.split("->").map((item) => item.trim());
+      setSelectedCategoryPath(path); // Track the category/subcategory path
+      setMainCategory(selectedValue);
+    }
+  };
+
+  ////////////////////////////////////-------------------------------------------------//////////////////////////////////
   // Handle main category change
   const handleMainCategoryChange = (event) => {
     const selectedValue = event.target.value;
@@ -49,6 +151,25 @@ function Main() {
     }
   };
 
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
+  const [newSubcategory, setNewSubcategory] = useState("");
+
+  useEffect(() => {
+    const fetchSubcategories = () => {
+      if (selectedCategory) {
+        const subcategories = categoriesData.filter(
+          (category) => category.parent_id === selectedCategory.id
+        );
+        setSubcategories(subcategories);
+      } else {
+        setSubcategories([]);
+      }
+    };
+
+    fetchSubcategories();
+  }, [selectedCategory]);
+
   // Handle saving the new category
   const handleSaveNewCategory = () => {
     if (newCategory.trim() !== "") {
@@ -61,93 +182,6 @@ function Main() {
     setIsAddingNew(false);
     handleClose();
   };
-
-  ////////////////////////////////////////////-------------------FOR SUB CATEGORY-------------------////////////////////////////////////////////
-  const handleSaveNewSubCategory = () => {
-    if (newsubCategory.trim() !== "") {
-      setSubCategories((prevCategories) => [...prevCategories, newsubCategory]);
-    }
-    setNewsubCategory(""); // Clear input after adding
-    setIsAddingNew(false); // Reset the flag
-    handleSubClose(); // Close modal
-  };
-
-  const handleSubcategoryChange = (event) => {
-    const selectedValue = event.target.value;
-
-    if (selectedValue === "AddSub") {
-      handleSubOpen();
-      setIsAddingNew(true); // Set the flag for adding new
-      // Open the modal
-    } else {
-      setSubCategory(selectedValue); // Set selected category for other options
-    }
-  };
-
-  ////////////////////////////////////////////-------------------FOR SUB SUB CATEGORY-------------------////////////////////////////////////////////
-  const [openSubSubModal, setOpenSubSubModal] = useState(false); // Sub-subcategory modal
-  const handleSubsubClose= () => setOpenSubSubModal(false);
-  const handleSaveNewSubSubCategory = () => {
-    if (newsubSubCategory.trim() !== "") {
-      setSubSubCategories((prevCategories) => [
-        ...prevCategories,
-        newsubSubCategory,
-      ]);
-    }
-    setNewSubSubCategory(""); // Clear input after adding
-    setIsAddingNew(false); // Reset the flag
-    handleSubsubClose(); // Close modal
-  };
-
-  const handleSubsubcategoryChange = (event) => {
-    const selectedValue = event.target.value;
-
-    if (selectedValue === "AddVal") {
-  
-      setIsAddingNew(true); // Set the flag for adding new
-      setOpenSubSubModal(true);// Open the modal
-    } else {
-      setSubSubCategory(selectedValue); // Set selected category for other options
-    }
-  };
-
-  ////////////////////////////////////////////-------------------FOR THIRDSUB CATEGORY-------------------////////////////////////////////////////////
-  
-  const [openThirdSubModal, setOpenThirdSubModal] = useState(false); // Sub-subcategory modal
-  const handleThirdsubClose= () => setOpenThirdSubModal(false);
-  const [newThirdSubCategory, setNewThirdSubCategory] = useState("");
-  const [thirdSubCategories, setThirdSubCategories] = useState([]);
-  const [thirdSubCategory, setThirdSubCategory] = useState("");
-
-
-
-  const handleSaveNewThirdSubCategory = () => {
-    if (newThirdSubCategory.trim() !== "") {
-      setThirdSubCategories((prevCategories) => [
-        ...prevCategories,
-        newThirdSubCategory,
-      ]);
-    }
-    setNewThirdSubCategory(""); // Clear input after adding
-    setIsAddingNew(false); // Reset the flag
-    handleThirdsubClose(); // Close modal
-  };
-
-  const handleThirdsubcategoryChange = (event) => {
-    const selectedValue = event.target.value;
-
-    if (selectedValue === "AddThird") {
-  
-      setIsAddingNew(true); // Set the flag for adding new
-      setOpenThirdSubModal(true);// Open the modal
-    } else {
-      setThirdSubCategory(selectedValue); // Set selected category for other options
-    }
-  };
-
-
-
-
 
   const style = {
     position: "absolute",
@@ -172,6 +206,7 @@ function Main() {
       <h1 className="text-3xl md:text-xl lg:text-5xl font-bold">
         Product Form
       </h1>
+      {/* {console.log(categories)} */}
       <form className="flex flex-wrap justify-center flex-col gap-5 items-center mt-9 w-[95%] sm:w-[80%] sm:px-5">
         <div className="flex items-center  gap-5 w-[100%]">
           <label htmlFor="name">Name</label>
@@ -213,15 +248,19 @@ function Main() {
             <select
               id="mainCategory"
               value={mainCategory}
-              onChange={handleMainCategoryChange}
+              onChange={handleCategoryChange}
+              // onChange={handleMainCategoryChange}
               className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[60%]"
               name="mainCategory"
             >
               <option value="">Select a category</option>
-              {Object.keys(categories).map((category, index) => (
-                <option key={index} value={category}>
-                  {category}
-                </option>
+              {Object.keys(categories).map((category) => (
+                <React.Fragment key={category}>
+                  <option value={category}>{category}</option>
+                  {/* Render subcategories recursively */}
+                  {/* {renderCategoryOptions(categories)}  */}
+                  {renderCategoryOptions(categories[category])}
+                </React.Fragment>
               ))}
               <option className="bg-green-600" value="Add">
                 + Add New Category
@@ -243,7 +282,7 @@ function Main() {
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     placeholder="Enter new category"
-                    className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[100%]"
+                    className="Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[50%]"
                   />
                   <Button
                     className="text-lg mt-1 capitalize bg-green-600"
@@ -256,161 +295,28 @@ function Main() {
               </Modal>
             )}
           </div>
-          <div className="flex items-center justify-between   w-[100%]">
+
+          <div className="flex items-center gap-5 w-[100%]">
             <label htmlFor="subcategories">Add sub-category:</label>
-            <select
-              id="subcategories"
-              className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[60%]"
-              name="subcategories"
-              disabled={!mainCategory}
-              onChange={handleSubcategoryChange}
-            >
-              <option value="">Select a subcategory</option>
-              {subCategories.map((sub, index) => (
-                <option key={index} value={sub}>
-                  {" "}
-                  {sub}{" "}
-                </option>
-              ))}
-              <option className="bg-green-600" value="AddSub">
-                + Add New Category
-              </option>
-            </select>
-            {openSubModal && (
-              <Modal
-                open={openSubModal}
-                onClose={handleSubClose}
-                aria-labelledby="modal-modal-title"
-                aria-describedby="modal-modal-description"
-              >
-                <Box sx={style}>
-                  <h1>Add new Sub-category</h1>
-                  <input
-                    type="text"
-                    id="subcategory"
-                    name="subcategory"
-                    value={newsubCategory}
-                    onChange={(e) => setNewsubCategory(e.target.value)}
-                    placeholder="Enter new sub-category"
-                    className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[100%]"
-                  />
-                  <Button
-                    className="text-lg mt-1 capitalize bg-green-600"
-                    variant="contained"
-                    onClick={handleSaveNewSubCategory}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              </Modal>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-5 w-[100%]">
-          <div className="flex items-center justify-between   w-[100%]">
-            <label htmlFor="categories">Add sub category:</label>
-            <select
-              id="categories"
-              className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[60%]"
-              name="categories"
-              disabled={!subCategory}
-              onChange={handleSubsubcategoryChange}
-            >
-              <option value="">Select sub-category</option>
-              {subSubCategories.map((sub, index) => (
-                <option key={index} value={sub}>
-                  {" "}
-                  {sub}
-                </option>
-              ))}
-              <option className="bg-green-600" value="AddVal">
-                + Add New Category
-              </option>
-            </select>
-
-            {openSubSubModal && (
-              <Modal
-                open={openSubSubModal}
-                onClose={handleSubsubClose}
-                aria-labelledby="modal-modal-title"
-                aria-describedby="modal-modal-description"
-              >
-                <Box sx={style}>
-                  <h1>Add new Sub-category</h1>
-                  <input
-                    type="text"
-                    id="subcategory"
-                    name="subcategory"
-                    value={newsubSubCategory}
-                    onChange={(e) => setNewSubSubCategory(e.target.value)}
-                    placeholder="Enter new sub-category"
-                    className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[100%]"
-                  />
-                  <Button
-                    className="text-lg mt-1 capitalize bg-green-600"
-                    variant="contained"
-                    onClick={handleSaveNewSubSubCategory}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              </Modal>
-            )}
-          </div>
-          <div className="flex items-center justify-between  w-[100%]">
-            <label htmlFor="categories">Add sub-category:</label>
-            <select
-              id="categories"
-              className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[60%]"
-              name="categories"
-              disabled={!subSubCategory}
-              onChange={handleThirdsubcategoryChange}
-            >
-
-              <option value="">Set Sub category</option>
-              {thirdSubCategories.map((sub, index) => (
-                <option key={index} value={sub}>
-                  {" "}
-                  {sub}
-                </option>
-              ))}
-              <option className="bg-green-600" value="AddThird">
-                + Add New Category
-              </option>
-            </select>
-
-            {openThirdSubModal && (
-              <Modal
-                open={openThirdSubModal}
-                onClose={handleThirdsubClose}
-                aria-labelledby="modal-modal-title"
-                aria-describedby="modal-modal-description"
-              >
-                <Box sx={style}>
-                  <h1>Add new Sub-category</h1>
-                  <input
-                    type="text"
-                    id="subcategory"
-                    name="subcategory"
-                    value={newThirdSubCategory}
+            <input
+              type="text"
+              id="subCategory"
+              name="subCategory"
+              value={newSubCategory}
+              onChange={(e) => setNewSubCategory(e.target.value)}
+              placeholder="Enter sub-category"
               
-                  
-                    onChange={(e) => setNewThirdSubCategory(e.target.value)}
-                    placeholder="Enter new sub-category"
-                    className=" Input rounded-3xl text-sm md:text-base duration-200 bg-primarylight py-4 px-5 mt-2 mb-2 w-[100%]"
-                  />
-                  <Button
-                    className="text-lg mt-1 capitalize bg-green-600"
-                    variant="contained"
-                    onClick={handleSaveNewThirdSubCategory}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              </Modal>)
-            }
+            />
+            <Button
+              className="text-lg mt-1 capitalize bg-green-600"
+              variant="contained"
+              onClick={handleAddSubCategory}
+            >
+              Add
+            </Button>
           </div>
         </div>
+        <div></div>
         <div className="flex w-[100%] items-center gap-3">
           <label htmlFor="description">Description</label>
           <textarea
@@ -424,6 +330,7 @@ function Main() {
             Submit
           </Button>
         </div>
+        {/* Render current category structure */}
       </form>
     </div>
   );

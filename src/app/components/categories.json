@@ -1,0 +1,25 @@
+
+[
+
+    {
+      "id": 1,
+      "name": "Accessories",
+      "parent_id": null
+    },
+    {
+      "id": 2,
+      "name": "Computer",
+      "parent_id": null
+    },
+    {
+      "id": 3,
+      "name": "Input Devices",
+      "parent_id": 1
+    },
+    {
+      "id": 4,
+      "name": "Keyboard",
+      "parent_id": 3
+    }
+   
+  ]

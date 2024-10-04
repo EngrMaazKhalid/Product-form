@@ -1,10 +1,12 @@
 import Image from "next/image";
-import Main from "./components/Main";
+
+import ProductForm from "./components/ProductForm";
 
 export default function Home() {
   return (
-    <div className="flex justify-center items-center bg-primary">
-<Main />
+    <div className="flex justify-center items-center max-h-screen bg-primary">
+
+<ProductForm />
     </div>
   );
 }

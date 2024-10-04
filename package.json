@@ -11,8 +11,12 @@
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@mui/material": "^6.1.1",
+    "@mui/icons-material": "^6.1.2",
+    "@mui/material": "^6.1.2",
+    "axios": "^1.7.7",
+    "mysql2": "^3.11.3",
     "next": "14.2.13",
+    "product-form": "file:",
     "react": "^18",
     "react-dom": "^18"
   },
